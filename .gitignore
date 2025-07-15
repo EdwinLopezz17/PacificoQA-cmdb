@@ -1,0 +1,60 @@
+# Entorno virtual
+venv/
+.env
+*.env
+
+# Archivos Python compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de logs
+*.log
+
+# Archivos temporales de OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Archivos de editor
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Archivos de Jupyter (por si acaso)
+.ipynb_checkpoints
+
+# Archivos generados por Streamlit
+.streamlit/config.toml
+.streamlit/secrets.toml
+
+# Archivos temporales
+*.tmp
+*.bak
+
+# Archivos creados por pip
+pip-log.txt
+
+# Archivos de pruebas
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Distribuciones y builds
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Archivos generados por Windows
+*.stackdump
