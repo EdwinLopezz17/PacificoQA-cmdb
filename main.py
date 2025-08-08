@@ -17,7 +17,6 @@ REQUIRED_COLS = [
 def ui_sidebar():
     st.sidebar.header("⚙️ Validaciones a ejecutar")
 
-    # Filtros base (opcional)
     with st.sidebar.expander("Filtros previos (dataset)", expanded=True):
         use_filter_dist = st.checkbox(
             "Incluir solo 'Distribuido(s)'", value=True,
@@ -28,7 +27,6 @@ def ui_sidebar():
             help="Filtra 'Tipo' por 'notebook' o 'desktop'."
         )
 
-    # Parámetros
     with st.sidebar.expander("Parámetros", expanded=True):
         minlen_serie = st.number_input("Longitud mínima de Serie", min_value=1, value=7, step=1)
         minlen_host = st.number_input("Longitud mínima de Hostname", min_value=1, value=7, step=1)
@@ -39,25 +37,21 @@ def ui_sidebar():
         )
         allowed_domains = [d.strip().lower() for d in allowed_domains_raw.split(",") if d.strip()]
 
-    # Reglas: Serie
     with st.sidebar.expander("Validaciones: Número de serie", expanded=True):
         v_serie_vacio = st.checkbox("Serie vacía", value=True)
         v_serie_espacios = st.checkbox("Serie contiene espacios", value=True)
         v_serie_minlen = st.checkbox("Serie menor a longitud mínima", value=True)
 
-    # Reglas: Hostname
     with st.sidebar.expander("Validaciones: Hostname", expanded=True):
         v_host_vacio = st.checkbox("Hostname vacío", value=True)
         v_host_espacios = st.checkbox("Hostname contiene espacios", value=True)
         v_host_minlen = st.checkbox("Hostname menor a longitud mínima", value=True)
 
-    # Reglas: Correo
     with st.sidebar.expander("Validaciones: Correo", expanded=True):
         v_mail_vacio = st.checkbox("Correo vacío", value=True)
         v_mail_espacios = st.checkbox("Correo contiene espacios", value=True)
         v_mail_dominio = st.checkbox("Correo no pertenece a dominios permitidos", value=True)
 
-    # Duplicados
     with st.sidebar.expander("Validaciones: Duplicados", expanded=True):
         v_dup_serie = st.checkbox("Serie duplicada", value=True)
         v_dup_host = st.checkbox("Hostname duplicado", value=True)
@@ -83,7 +77,6 @@ def ui_sidebar():
     return cfg
 
 def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
-    # Mantener solo columnas requeridas y hacer strip a strings
     df = df.copy()
     df = df[REQUIRED_COLS]
     df = df.apply(lambda col: col.map(lambda x: str(x).strip() if pd.notnull(x) else ""))
@@ -209,3 +202,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
