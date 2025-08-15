@@ -1,7 +1,8 @@
 # app.py
 import streamlit as st
 import pandas as pd
-from io import BytesIO
+
+from lib.io_utils import download_excel
 
 st.set_page_config(page_title="QA Inventario - Gestión de Activos", layout="wide")
 
@@ -58,10 +59,7 @@ def ui_sidebar():
         v_dup_mail = st.checkbox("Correo duplicado", value=True)
 
     cfg = {
-        "filters": {
-            "dist": use_filter_dist,
-            "tipo": use_filter_tipo,
-        },
+        "filters": {"dist": use_filter_dist, "tipo": use_filter_tipo},
         "params": {
             "minlen_serie": minlen_serie,
             "minlen_host": minlen_host,
@@ -84,23 +82,18 @@ def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
 
 def apply_filters(df: pd.DataFrame, cfg) -> pd.DataFrame:
     f = cfg["filters"]
-
     if f["dist"]:
         df = df[df["Clasificación Distribución"].str.lower().isin(["distribuidos", "distribuido"])]
-
     if f["tipo"]:
         df = df[df["Tipo"].str.lower().isin(["notebook", "desktop"])]
-
     return df
 
 def apply_validations(df: pd.DataFrame, cfg) -> pd.DataFrame:
-    r = cfg["rules"]
-    p = cfg["params"]
-
+    r = cfg["rules"]; p = cfg["params"]
     df = df.copy()
     df["Alertas"] = ""
 
-    # --- Serie ---
+    # Serie
     if r["serie"]["vacio"]:
         df.loc[df["Número de serie"] == "", "Alertas"] += "Serie vacía. "
     if r["serie"]["espacios"]:
@@ -108,7 +101,7 @@ def apply_validations(df: pd.DataFrame, cfg) -> pd.DataFrame:
     if r["serie"]["minlen"]:
         df.loc[df["Número de serie"].str.len() < int(p["minlen_serie"]), "Alertas"] += "Serie menor a longitud mínima. "
 
-    # --- Hostname ---
+    # Hostname
     if r["host"]["vacio"]:
         df.loc[df["Hostname"] == "", "Alertas"] += "Hostname vacío. "
     if r["host"]["espacios"]:
@@ -116,7 +109,7 @@ def apply_validations(df: pd.DataFrame, cfg) -> pd.DataFrame:
     if r["host"]["minlen"]:
         df.loc[df["Hostname"].str.len() < int(p["minlen_host"]), "Alertas"] += "Hostname menor a longitud mínima. "
 
-    # --- Correo ---
+    # Correo
     if r["mail"]["vacio"]:
         df.loc[df["Correo Electrónico"] == "", "Alertas"] += "Correo vacío. "
     if r["mail"]["espacios"]:
@@ -129,15 +122,15 @@ def apply_validations(df: pd.DataFrame, cfg) -> pd.DataFrame:
             )
             df.loc[mask_domain, "Alertas"] += "Correo no pertenece a dominios permitidos. "
 
-    # --- Duplicados ---
-    if r["dups"]["serie"]:
-        dup_serie = df["Número de serie"].duplicated(keep=False) & (df["Número de serie"] != "")
+    # Duplicados
+    dup_serie = df["Número de serie"].duplicated(keep=False) & (df["Número de serie"] != "")
+    dup_host  = df["Hostname"].duplicated(keep=False) & (df["Hostname"] != "")
+    dup_mail  = df["Correo Electrónico"].duplicated(keep=False) & (df["Correo Electrónico"] != "")
+    if cfg["rules"]["dups"]["serie"]:
         df.loc[dup_serie, "Alertas"] += "Serie duplicada. "
-    if r["dups"]["host"]:
-        dup_host = df["Hostname"].duplicated(keep=False) & (df["Hostname"] != "")
+    if cfg["rules"]["dups"]["host"]:
         df.loc[dup_host, "Alertas"] += "Hostname duplicado. "
-    if r["dups"]["mail"]:
-        dup_mail = df["Correo Electrónico"].duplicated(keep=False) & (df["Correo Electrónico"] != "")
+    if cfg["rules"]["dups"]["mail"]:
         df.loc[dup_mail, "Alertas"] += "Correo duplicado. "
 
     return df
@@ -147,9 +140,7 @@ def main():
     st.write("Carga tu archivo de inventario en Excel y genera un reporte de **alertas** según reglas seleccionadas.")
 
     cfg = ui_sidebar()
-
     uploaded_file = st.file_uploader("Sube tu archivo Excel", type=["xlsx"])
-
     if uploaded_file is None:
         st.info("Esperando archivo .xlsx…")
         return
@@ -168,7 +159,6 @@ def main():
         st.error(f"Faltan columnas requeridas: {missing}")
         return
 
-    # Normalizar y filtrar
     df = normalize_df(df)
     df = apply_filters(df, cfg)
 
@@ -176,7 +166,6 @@ def main():
         st.warning("Después de aplicar los filtros, no quedaron filas para validar.")
         return
 
-    # Validaciones
     df_validado = apply_validations(df, cfg)
     df_alertas = df_validado[df_validado["Alertas"] != ""]
 
@@ -184,19 +173,9 @@ def main():
     if not df_alertas.empty:
         st.success(f"Se encontraron {len(df_alertas)} filas con alertas.")
         st.dataframe(df_alertas, use_container_width=True)
-
-        # Descargar Excel con alertas
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            df_alertas.to_excel(writer, index=False, sheet_name="Alertas")
-        data = output.getvalue()
-
-        st.download_button(
-            label="📥 Descargar Excel con Alertas",
-            data=data,
-            file_name="alertas_QA_inventory.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
+        data = download_excel(df_alertas, sheet_name="Alertas", filename="alertas_QA_inventory.xlsx")
+        st.download_button("📥 Descargar Excel con Alertas", data=data, file_name="alertas_QA_inventory.xlsx",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     else:
         st.success("No se encontraron alertas. ¡Todo OK!")
 
